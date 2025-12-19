@@ -229,7 +229,7 @@
         letter: {
             title: "To My Dearest Friend",
             // 使用 \n 换行
-            content: "May this Christmas bring you happiness and joy.\n\n愿你的圣诞充满温馨与快乐，\n新的一年万事如意，心想事成。\n\nBest Wishes,\nSanta's Helper,\n2025.12.16"
+            content: "华老师:\nMay this Christmas bring you happiness and joy.\n\n愿你的圣诞充满温馨与快乐，\n万事如意，心想事成。\n\n2025.12.19"
         }
     };
 
@@ -309,17 +309,25 @@
             const ctx = canvas.getContext('2d');
             canvas.width = 2048; canvas.height = 512; // 🌟 修改：恢复高度
             ctx.fillStyle = '#000000'; ctx.fillRect(0,0, canvas.width, canvas.height);
-            // 🌟 修改：字体调小，单行显示
-            ctx.font = '700 130px "Cinzel"'; 
+            // 🌟 修改：多行显示
             ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             
-            // 🌟 修改：单行绘制
-            ctx.fillText("Merry Christmas", canvas.width/2, canvas.height/2);
+            // 第一行 (更细更轻的字重，更大的字号)
+            ctx.font = '400 160px "Cinzel"'; 
+            ctx.fillText("Merry Christmas", canvas.width/2, canvas.height/2 - 150);
+
+            // 第二行 (中文)
+            ctx.font = '400 150px "Microsoft YaHei", "SimHei", sans-serif';
+            ctx.fillText("雪宝你好", canvas.width/2, canvas.height/2 + 40);
+
+            // 第三行
+            ctx.font = '400 100px "Cinzel", sans-serif';
+            ctx.fillText("do u wanna build a snowman?", canvas.width/2, canvas.height/2 + 190);
             
             const imgData = ctx.getImageData(0,0, canvas.width, canvas.height);
             const data = imgData.data;
             textPoints = [];
-            const step = 4; // 🌟 修改：步长
+            const step = 5; // 🌟 修改：步长 (字大了，步长稍微加大以控制粒子数)
             for(let y=0; y<canvas.height; y+=step) {
                 for(let x=0; x<canvas.width; x+=step) {
                     if(data[(y * canvas.width + x) * 4] > 128) {
@@ -603,31 +611,31 @@
             }
 
             // 🌟 改进：银河系形状 (更圆润、立体、自然)
-            const arms = 5; 
-            const armAngle = (Math.floor(Math.random() * arms) / arms) * Math.PI * 2;
+            const galArms = 5; 
+            const galArmAngle = (Math.floor(Math.random() * galArms) / galArms) * Math.PI * 2;
             
             // 半径分布：偏向中心，最大半径约 60
-            const gR = Math.pow(Math.random(), 1.5) * 60; 
+            const galR = Math.pow(Math.random(), 1.5) * 60; 
             
             // 螺旋角度：随半径增加
-            const spin = gR * 0.25;
+            const galSpin = galR * 0.25;
             
             // 随机偏移：边缘更散，使形状更圆润
-            const fuzziness = 5 + gR * 0.2;
-            const xOffset = (Math.random() - 0.5) * fuzziness;
-            const zOffset = (Math.random() - 0.5) * fuzziness;
+            const galFuzziness = 5 + galR * 0.2;
+            const galXOffset = (Math.random() - 0.5) * galFuzziness;
+            const galZOffset = (Math.random() - 0.5) * galFuzziness;
             
-            const gAngle = armAngle + spin;
+            const galFinalAngle = galArmAngle + galSpin;
             
             // 垂直高度：中心球状，边缘盘状，增加立体感
-            let ySpread = 15 * Math.exp(-gR * 0.07);
-            ySpread = Math.max(ySpread, 2); // 最小厚度
-            const gY = (Math.random() - 0.5) * ySpread;
+            let galYSpread = 15 * Math.exp(-galR * 0.07);
+            galYSpread = Math.max(galYSpread, 2); // 最小厚度
+            const galY = (Math.random() - 0.5) * galYSpread;
 
             this.posGalaxy.set(
-                Math.cos(gAngle) * gR + xOffset,
-                gY,
-                Math.sin(gAngle) * gR + zOffset
+                Math.cos(galFinalAngle) * galR + galXOffset,
+                galY,
+                Math.sin(galFinalAngle) * galR + galZOffset
             );
         }
 
@@ -653,7 +661,7 @@
                 if (this.type === 'PHOTO' || this.isDust) {
                     target = this.posScatter;
                 } else {
-                    targetScale = this.baseScale * 0.9;
+                    targetScale = this.baseScale * 0.6; // 🌟 修改：粒子变小，让文字线条更细致
                     if(this.type === 'GOLD_SPHERE' || this.type === 'GIFT') {
                          this.mesh.material.emissiveIntensity = 0.5 + Math.sin(clock.elapsedTime * 5 + this.mesh.id) * 0.3;
                     }
@@ -1095,20 +1103,10 @@
 
             // 1. 双手检测：许愿姿势 (双手合十/交叉) -> 汇聚成树
             if (result.landmarks.length === 2) {
-                const hand1 = result.landmarks[0];
-                const hand2 = result.landmarks[1];
-                
-                // 计算多个关键点的距离 (手腕、食指根部、小指根部)
-                const d1 = Math.hypot(hand1[0].x - hand2[0].x, hand1[0].y - hand2[0].y);
-                const d2 = Math.hypot(hand1[5].x - hand2[5].x, hand1[5].y - hand2[5].y);
-                const d3 = Math.hypot(hand1[17].x - hand2[17].x, hand1[17].y - hand2[17].y);
-                
-                // 放宽判定阈值：只要任意关键部位靠近 (0.5 约为屏幕宽度的 1/2，非常宽松)
-                if (d1 < 0.5 || d2 < 0.5 || d3 < 0.5) {
-                    STATE.mode = 'TREE';
-                    STATE.focusTarget = null;
-                    return; 
-                }
+                // 🌟 修改：只要检测到两只手，立即汇聚成树 (取消距离限制，防止握紧时无法触发)
+                STATE.mode = 'TREE';
+                STATE.focusTarget = null;
+                return; 
             }
 
             // 单手手势处理 (使用第一只检测到的手)
