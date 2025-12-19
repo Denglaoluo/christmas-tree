@@ -147,7 +147,7 @@
     <canvas id="webcam-preview"></canvas>
 </div>
 
-<audio id="background-music" loop preload="auto"></audio>
+<audio id="background-music" loop preload="auto" autoplay></audio>
 
 <script type="module">
     import * as THREE from 'three';
@@ -236,6 +236,7 @@
     const STATE = {
         mode: 'TREE', // TREE, SCATTER, FOCUS, TEXT, LETTER, SNOW, GALAXY
         focusTarget: null,
+        lastPhotoIndex: -1, // 🌟 新增：记录上一张照片索引
         hand: { detected: false, x: 0, y: 0 },
         rotation: { x: 0, y: 0, targetX: 0, targetY: 0 },
         music: { isPlaying: false, volume: 0.7, audioElement: null },
@@ -1049,11 +1050,16 @@
                 }).catch(error => {
                     console.log("浏览器阻止自动播放，等待交互...");
                     const startAudio = () => {
-                        audio.play();
-                        STATE.music.isPlaying = true;
-                        document.body.removeEventListener('click', startAudio);
+                        audio.play().then(() => {
+                            STATE.music.isPlaying = true;
+                            ['click', 'keydown', 'touchstart', 'mousemove'].forEach(e => 
+                                document.body.removeEventListener(e, startAudio)
+                            );
+                        }).catch(e => {});
                     };
-                    document.body.addEventListener('click', startAudio);
+                    ['click', 'keydown', 'touchstart', 'mousemove'].forEach(e => 
+                        document.body.addEventListener(e, startAudio)
+                    );
                 });
             }
         }
@@ -1188,7 +1194,19 @@
                     STATE.mode = 'FOCUS';
                     const photos = particleSystem.filter(p => p.type === 'PHOTO');
                     if(photos.length) {
-                        STATE.focusTarget = photos[Math.floor(Math.random()*photos.length)].mesh;
+                        let nextIndex;
+                        if (photos.length > 1) {
+                            // 🌟 修改：确保每次选取的照片不同
+                            let attempts = 0;
+                            do {
+                                nextIndex = Math.floor(Math.random() * photos.length);
+                                attempts++;
+                            } while (nextIndex === STATE.lastPhotoIndex && attempts < 10);
+                        } else {
+                            nextIndex = 0;
+                        }
+                        STATE.lastPhotoIndex = nextIndex;
+                        STATE.focusTarget = photos[nextIndex].mesh;
                     }
                 }
             }
